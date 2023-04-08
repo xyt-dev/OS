@@ -1,0 +1,12 @@
+megs: 32
+romimage: file=C:\Users\lenovo\Desktop\KernelTest\Bochs-2.7\BIOS-bochs-latest
+vgaromimage: file=C:\Users\lenovo\Desktop\KernelTest\Bochs-2.7\VGABIOS-lgpl-latest
+
+boot: disk
+
+mouse: enabled=0
+keyboard: keymap = C:\Users\lenovo\Desktop\KernelTest\Bochs-2.7\keymaps\x11-pc-us.map
+
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0-master: type=disk, path="disk1.img"
+
