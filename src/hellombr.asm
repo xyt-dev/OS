@@ -40,6 +40,7 @@ section MBR vstart=0x7c00
 ;     int 0x10
 
 ; 直接向显存打印字符
+
     mov byte [gs:0], 'H'
     mov byte [gs:1], 0xA4
     mov byte [gs:2], 'e'
