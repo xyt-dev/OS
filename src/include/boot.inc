@@ -1,0 +1,2 @@
+LOADER_BASE_ADDR equ 0x900  ;实模式从0x500~0x7BFF都是可用地址,0x900当然也可以a,随意
+LOADER_START_SECTOR equ 0x2   ;LBA从0开始,0x1可以用,0x2当然也可以,随意
