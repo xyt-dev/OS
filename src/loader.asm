@@ -1,5 +1,6 @@
 %include "boot.inc"
 section loader vstart=LOADER_BASE_ADDR
+
     LOADER_STACK_TOP equ LOADER_BASE_ADDR
 
     ; ------ OLD LOADER ------
@@ -29,6 +30,7 @@ section loader vstart=LOADER_BASE_ADDR
     ; jmp $
     ; -----------------------
 
+    ; ---------- GDT ----------
     GDT_BASE:
         dd 0x00000000
         dd 0x00000000
@@ -45,10 +47,12 @@ section loader vstart=LOADER_BASE_ADDR
     GDT_LIMIT equ GDT_SIZE - 1
 
     times 60 dq 0 ; 预留60个段描述符位置
-    
+
+    ; ---------- selector ----------
     SELECTOR_CODE equ (0x0001 << 3) + TI_GDT + RPL0
     SELECTOR_DATA equ (0x0002 << 3) + TI_GDT + RPL0 
     SELECTOR_VIDEO equ (0x0003 << 3) + TI_GDT + RPL0
+
 
 ; total_mem_bytes 用于保存内存容量，以字节为单位，此位置比较好记
 ; 当前偏移loader.bin 文件头Ox200 字节
@@ -95,7 +99,7 @@ loader_start:
 .find_max_mem_area:
     ; 无需判断type，最大内存块一定能被使用(除非安装物理内存极小，否则不会出现较大内存区不可用情况)
     mov eax, [ebx]
-    add eax, [ebx + 8]
+    add eax, [ebx + 8] ; 查看内存上限
     add ebx, 20
     cmp edx, eax
     jge .next_ards
@@ -157,6 +161,7 @@ loader_start:
 
 [bits 32]
 p_mode_start:
+    ; ---------- 保护模式下的初始化 ----------
     mov ax, SELECTOR_DATA
     mov ds, ax
     mov es, ax
@@ -167,4 +172,68 @@ p_mode_start:
 
     mov byte [gs:0x160], 'P'
 
+    ; ---------- 初始化页表 ----------
+    call setup_page ; 创建页目录和页表
+    sgdt [gdt_ptr] ; 将描述符表地址[47~16]、界限[15~0]存入gdt_ptr
+    mov ebx, [gdt_ptr + 2] ; 描述符表基地址
+    or dword [ebx + 0x18 + 4], 0xc0000000 ; 视频段是第3个描述符(3 * 8 = 0x18)，给高4字节的最高字节+0xc0
+    add dword [gdt_ptr + 2], 0xc0000000 ; 给gdt_ptr的基地址+0xc0000000
+    add esp, 0xc0000000 ; 栈指针同样映射到内核地址
+    ; 页目录表的地址存入cr3
+    mov eax, PAGE_DIR_TABLE_POS
+    mov cr3, eax
+    ; 打开cr0的PG位(第31位)，开启分页
+    mov eax, cr0
+    or eax, 0x80000000
+    mov cr0, eax
+
+    lgdt [gdt_ptr] ; 用gdt新地址重新加载
+    mov byte [gs:0x162], 'V'
+
     jmp $
+
+; -------------------------- 建立页表 --------------------------------
+setup_page:
+    ; 页目录占用内存空间逐字节清0
+    mov ecx, 4096
+    mov esi, 0
+.clear_page_dir:
+    mov byte [PAGE_DIR_TABLE_POS + esi], 0
+    inc esi
+    loop .clear_page_dir
+
+; 创建页目录表(PDE)
+.create_pde:
+    mov eax, PAGE_DIR_TABLE_POS
+    add eax, 0x1000 ; 第一个页表位置
+    mov ebx, eax ; 为create_pte做准备，ebx为基址
+    ; 页目录项0和0xc00都存为第一个页表的地址，每个页表表示4MB内存
+    or eax, PG_US_U | PG_RW_W | PG_P ; 第一个页表属性
+    mov [PAGE_DIR_TABLE_POS + 0x0], eax
+    mov [PAGE_DIR_TABLE_POS + 0xc00], eax ; 0xc00 表示第 768 个页表占用的目录项，0xc00以上目录项属于内核空间(768 * 1024 * 4KB = 3GB，即虚拟内存3GB以上空间为内核空间)
+    sub eax, 0x1000
+    mov [PAGE_DIR_TABLE_POS + 4092], eax ; 最后一个目录项（+4092）指向页目录表自己的地址
+
+; 创建页表(PTE)
+    mov ecx, 256 ; 1M低端内存 / 4KB = 256
+    mov esi, 0
+    mov edx, PG_US_U | PG_RW_W | PG_P
+.create_pte:
+    mov [ebx + esi * 4], edx
+    add edx, 4096
+    inc esi
+    loop .create_pte
+
+; 创建内核其它页表的PDE，提前把内核所有页目录定下来，方便实现内核完全共享
+    mov eax, PAGE_DIR_TABLE_POS
+    add eax, 0x2000 ; 第二个页表位置
+    or eax, PG_US_U | PG_RW_W | PG_P
+    mov ebx, PAGE_DIR_TABLE_POS
+    mov ecx, 254 ; 范围为第 769 ~ 1022 个目录项
+    mov esi, 769
+.create_kernel_pde:
+    mov [ebx + esi * 4], eax
+    inc esi
+    add eax, 0x1000 ; 目录项与页表地址顺序对应
+    loop .create_kernel_pde
+    ret
