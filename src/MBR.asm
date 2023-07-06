@@ -46,7 +46,7 @@ section MBR vstart=0x7c00
     mov bx, LOADER_BASE_ADDR        ;写入的内存地址
     ;mov cx, 1                      ;读取扇区数
     mov cx, 4                       ;(变动)改为4个扇区
-    call rd_disk_m_16               ;以下读取程序的起始部分(1个扇区)
+    call rd_disk_m_16               ;以下读取程序的起始部分
 
     jmp LOADER_BASE_ADDR + 0x300    ;跳转到程序的起始部分 -> 改为跳转到loader_start
 
