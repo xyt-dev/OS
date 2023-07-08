@@ -73,7 +73,7 @@ section loader vstart=LOADER_BASE_ADDR
     msg_length equ $ - loader_msg
 
 loader_start:
-    mov byte [gs:0x160], 'L'
+
 ; ------------ int 15h ax = EBOlh 获取内存大小 ------------
 ; 获取物理内存容量
 ; int 15h eax = 0000E820h edx = 534D4150h ('SMAP')
