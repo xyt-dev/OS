@@ -48,8 +48,7 @@ section MBR vstart=0x7c00
     mov cx, 4                       ;(变动)改为4个扇区
     call rd_disk_m_16               ;以下读取程序的起始部分
 
-    mov byte [gs:0x160], 'J'
-    jmp 0:LOADER_BASE_ADDR + 0x300    ;跳转到程序的起始部分 -> 改为跳转到loader_start
+    jmp LOADER_BASE_ADDR + 0x300    ;跳转到程序的起始部分 -> 改为跳转到loader_start
 
 rd_disk_m_16:
 ; 读取硬盘n个扇区
@@ -107,8 +106,12 @@ rd_disk_m_16:
     mov cx, ax
     mov dx, 0x1F0
 
+    mov di, 0x100
     .go_on_read:
         in ax, dx
+        mov byte [gs:di], al
+        mov byte [gs:di+2], ah
+        add di, 4
         mov [bx], ax
         add bx, 2
         loop .go_on_read
