@@ -106,12 +106,12 @@ rd_disk_m_16:
     mov cx, ax
     mov dx, 0x1F0
 
-    mov di, 0x100
+    ; mov di, 0x100 ; debug
     .go_on_read:
         in ax, dx
-        mov byte [gs:di], al
-        mov byte [gs:di+2], ah
-        add di, 4
+        ; mov byte [gs:di], al
+        ; mov byte [gs:di+2], ah
+        ; add di, 4
         mov [bx], ax
         add bx, 2
         loop .go_on_read
