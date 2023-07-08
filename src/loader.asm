@@ -65,8 +65,8 @@ section loader vstart=LOADER_BASE_ADDR
         dw GDT_LIMIT
         dd GDT_BASE
     
-    ; 4 + 6 + 244 + 2 = 256 bytes （对齐好看）
-    ards_buf times 244 db 0
+    ; 4 + 6 + 232 + 2 + 12 = 256 bytes （对齐好看）
+    ards_buf times 232 db 0
     ards_nr dw 0
 
     loader_msg db "REAL LOADER."
