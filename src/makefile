@@ -28,4 +28,4 @@ makedisk_qemu:
 	x86ld kernel/main.o -Ttext 0xc0001500 -e main -o kernel/kernel.bin -m elf_i386
 	dd if=kernel/kernel.bin of=../qemu/xy6.img bs=512 count=200 seek=9 conv=notrunc
 run_qemu:
-	qemu-i386 -cpu qemu32 -m 32 -vga cirrus -drive file=../qemu/xy6.img,format=raw,index=0 -d int -no-reboot
+	qemu-i386 -m 32 -vga cirrus -drive file=../qemu/xy6.img,format=raw,index=0 -d int -no-reboot
